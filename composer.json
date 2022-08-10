@@ -1,0 +1,29 @@
+{
+    "name": "mikeweb85/cakephp-text",
+    "description": "Enhanced Text Utility plugin for CakePHP",
+    "type": "cakephp-plugin",
+    "license": "MIT",
+    "require": {
+        "php": ">=7.2",
+        "ext-openssl": "*",
+        "ext-mbstring": "*",
+        "cakephp/cakephp": "^4.1",
+        "voku/stop-words": "^2",
+        "html2text/html2text": "^4.3",
+        "ezyang/htmlpurifier": "^4.13"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^8.5 || ^9.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "MikeWeb\\CakeText\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "MikeWeb\\CakeText\\Test\\": "tests/",
+            "Cake\\Test\\": "vendor/cakephp/cakephp/tests/"
+        }
+    }
+}
