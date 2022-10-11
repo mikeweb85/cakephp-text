@@ -37,7 +37,7 @@ class Text extends BaseText {
         }
 
         $options += [
-            'case'      => CASE_UPPER,
+            'case'      => CASE_LOWER,
             'secure'    => false,
         ];
 
