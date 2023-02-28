@@ -37,7 +37,7 @@ class Text extends BaseText {
         }
 
         $options += [
-            'case'      => CASE_LOWER,
+            'case'      => MB_CASE_LOWER,
             'secure'    => false,
         ];
 
@@ -65,7 +65,7 @@ class Text extends BaseText {
     public static function slug(string $string, $options = []): string
     {
         $string = preg_replace_callback(
-            '/(?<=\s|^|-|\/|\.)[A-Z]{2,}s?/',
+            '/(?<=\s|^|\W)[A-Z]{2,}s?/',
             function ($match) {
                 return ucfirst(mb_strtolower((string)$match[0]));
             },
@@ -88,7 +88,12 @@ class Text extends BaseText {
      */
     public static function isUuid(string $string): bool
     {
-        return (bool)preg_match(RouteBuilder::UUID, $string);
+        return (
+            false !==
+            preg_match(
+                sprintf('/^%s$/i', RouteBuilder::UUID), $string
+            )
+        );
     }
 
     /**
@@ -115,7 +120,8 @@ class Text extends BaseText {
         }
 
         try {
-            return self::$_stopWords->getStopWordsFromLanguage($language);
+            return self::$_stopWords
+                ->getStopWordsFromLanguage($language);
 
         } catch (StopWordsLanguageNotExists $e) {
             return [];
