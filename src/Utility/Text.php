@@ -88,12 +88,7 @@ class Text extends BaseText {
      */
     public static function isUuid(string $string): bool
     {
-        return (
-            false !==
-            preg_match(
-                sprintf('/^%s$/i', RouteBuilder::UUID), $string
-            )
-        );
+        return (0 < (int)preg_match(sprintf('/^%s$/i', RouteBuilder::UUID), $string));
     }
 
     /**
