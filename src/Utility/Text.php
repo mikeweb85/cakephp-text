@@ -14,6 +14,10 @@ use voku\helper\StopWordsLanguageNotExists;
 
 class Text extends BaseText {
 
+    const CASE_LOWER = MB_CASE_LOWER;
+
+    const CASE_UPPER = MB_CASE_UPPER;
+
     protected static ?HTMLPurifier $_purifier;
 
     protected static ?StopWords $_stopWords;
@@ -21,15 +25,19 @@ class Text extends BaseText {
     /**
      * Generate a random UUID version 4
      *
-     * Available $options are:
-     * - case: desired case for string output. mb_string options are CASE_LOWER | CASE_UPPER
-     * - secure: FALSE uses the core Text::uuid(), TRUE uses openssl_random_pseudo_bytes
+     * ### Options
+     * case: desired case for string output. mb_string options are CASE_LOWER | CASE_UPPER
+     * secure: FALSE uses the core Text::uuid(), TRUE uses openssl_random_pseudo_bytes
+     * version: See Uuid::generate()
      *
      * @param int|bool|array<string, mixed> $options
      * @return string
+     * @deprecated
      */
     public static function uuid(array|int|bool $options = []): string
     {
+        deprecationWarning('Use Uuid::generate() instead.');
+
         if (is_int($options)) {
             $options = ['case' => $options];
         } elseif (is_bool($options)) {
@@ -37,28 +45,12 @@ class Text extends BaseText {
         }
 
         $options += [
-            'case'      => MB_CASE_LOWER,
+            'case'      => self::CASE_LOWER,
             'secure'    => false,
+            'version'   => Uuid::VERSION_4,
         ];
 
-        if ($options['secure']) {
-            $uuid = openssl_random_pseudo_bytes(16);
-            // set variant
-            $uuid[8] = chr(ord($uuid[8]) & 0x39 | 0x80);
-            // set version
-            $uuid[6] = chr(ord($uuid[6]) & 0xf | 0x40);
-
-            $uuid = preg_replace(
-                '/(\w{8})(\w{4})(\w{4})(\w{4})(\w{12})/',
-                '$1-$2-$3-$4-$5',
-                bin2hex($uuid)
-            );
-
-        } else {
-            $uuid = parent::uuid();
-        }
-
-        return mb_convert_case($uuid, $options['case'], 'utf-8');
+        return (string)Uuid::generate($options);
     }
 
     /** @inheritDoc */
@@ -85,10 +77,12 @@ class Text extends BaseText {
     /**
      * @param string $string
      * @return bool
+     * @deprecated
      */
     public static function isUuid(string $string): bool
     {
-        return (0 < (int)preg_match(sprintf('/^%s$/i', RouteBuilder::UUID), $string));
+        deprecationWarning('Use Uuid::valid() instead.');
+        return Uuid::valid($string);
     }
 
     /**
