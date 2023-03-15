@@ -2,25 +2,53 @@
 
 namespace MikeWeb\CakeText\Utility;
 
-use Cake\Core\Configure;
-use Cake\Routing\RouteBuilder;
-use Cake\Utility\Inflector;
 use Cake\Utility\Text as BaseText;
-use Html2Text\Html2Text;
-use HTMLPurifier;
-use HTMLPurifier_Config;
+use League\Container\Container;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use voku\helper\StopWords;
 use voku\helper\StopWordsLanguageNotExists;
 
 class Text extends BaseText {
 
     const CASE_LOWER = MB_CASE_LOWER;
-
     const CASE_UPPER = MB_CASE_UPPER;
 
-    protected static ?HTMLPurifier $_purifier;
+    protected static ?Container $registry = null;
 
-    protected static ?StopWords $_stopWords;
+    /**
+     * @return Container
+     */
+    public static function getRegistry(): Container
+    {
+        if (!static::$registry) {
+            static::$registry = new Container();
+        }
+
+        return static::$registry;
+    }
+
+    /**
+     * @param string $lang
+     * @return array<string>
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws StopWordsLanguageNotExists
+     */
+    public static function getStopwords(string $lang='en'): array
+    {
+        $hasStopwords = static::getRegistry()
+            ->has('stopwords');
+
+        if (!$hasStopwords) {
+            static::getRegistry()
+                ->add('stopwords', StopWords::class);
+        }
+
+        return static::getRegistry()
+            ->get('stopwords')
+            ->getStopWordsFromLanguage($lang);
+    }
 
     /**
      * Generate a random UUID version 4
@@ -34,7 +62,7 @@ class Text extends BaseText {
      * @return string
      * @deprecated
      */
-    public static function uuid(array|int|bool $options = []): string
+    public static function uuid(array|int|bool $options=[]): string
     {
         deprecationWarning('Use Uuid::generate() instead.');
 
@@ -54,24 +82,9 @@ class Text extends BaseText {
     }
 
     /** @inheritDoc */
-    public static function slug(string $string, $options = []): string
+    public static function slug(string $string, $options=[]): string
     {
-        $string = preg_replace_callback(
-            '/(?<=\s|^|\W)[A-Z]{2,}s?/',
-            function ($match) {
-                return ucfirst(mb_strtolower((string)$match[0]));
-            },
-            $string
-        );
-
-        return mb_strtolower(
-            parent::slug(
-                Inflector::underscore(
-                    trim($string, "_- \t\n\r\0\x0B")
-                )
-            ),
-            '8bit'
-        );
+        return Slug::generate($string, $options);
     }
 
     /**
@@ -86,65 +99,38 @@ class Text extends BaseText {
     }
 
     /**
-     * @return HTMLPurifier
-     */
-    protected static function getHtmlPurifier(): HTMLPurifier
-    {
-        if ( !isset(self::$_purifier) || ! self::$_purifier instanceof HTMLPurifier ) {
-            $config = Configure::readOrFail('HtmlPurifier');
-            self::$_purifier = new HTMLPurifier(HTMLPurifier_Config::create($config));
-        }
-
-        return self::$_purifier;
-    }
-
-    /**
      * @param string $language
-     * @return array
+     * @return array<string>
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws StopWordsLanguageNotExists
      */
     protected static function getStopWordsFromLanguage(string $language='en'): array
     {
-        if ( !isset(self::$_stopWords) || !self::$_stopWords instanceof StopWords ) {
-            self::$_stopWords = new StopWords();
-        }
-
-        try {
-            return self::$_stopWords
-                ->getStopWordsFromLanguage($language);
-
-        } catch (StopWordsLanguageNotExists $e) {
-            return [];
-        }
-    }
-
-    /**
-     * @param string $data
-     * @return Html2Text
-     */
-    protected static function _getHtmlTextObject(string $data): Html2Text
-    {
-        return new Html2Text($data);
+        deprecationWarning('Use Text::getStopWords() instead.');
+        return static::getStopwords($language);
     }
 
     /**
      * @param string $html
      * @return string
+     * @deprecated
      */
     public static function htmlToText(string $html): string
     {
-        return trim(
-            self::_getHtmlTextObject($html)
-                ->getText()
-        );
+        deprecationWarning('Use Html::toText() instead.');
+        return Html::toText($html);
     }
 
     /**
      * @param string $html
      * @return string
+     * @deprecated
      */
     public static function purifyHtml(string $html): string
     {
-        return self::getHtmlPurifier()
-            ->purify($html);
+        deprecationWarning('Use Html::clean() instead.');
+        return Html::clean($html);
     }
 }
+
