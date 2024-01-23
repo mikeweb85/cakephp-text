@@ -12,11 +12,7 @@ use tidy;
 
 class Html
 {
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
-    private static function getHtmlPurifier(): HTMLPurifier|tidy
+    private static function getHtmlPurifier(): HTMLPurifier|tidy|null
     {
         $hasPurifier = Text::getRegistry()
             ->has('html_purifier');
@@ -31,18 +27,19 @@ class Html
                 ->addArgument($config);
         }
 
-        return Text::getRegistry()
-            ->get('html_purifier');
+        try {
+            return Text::getRegistry()
+                ->get('html_purifier');
+
+        } catch (ContainerExceptionInterface|NotFoundExceptionInterface $e) {
+            return null;
+        }
     }
 
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
     public static function clean(string $html): string
     {
         $html = static::getHtmlPurifier()
-            ->purify($html);
+            ?->purify($html);
 
         return trim((string)$html);
     }

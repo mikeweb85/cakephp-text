@@ -31,8 +31,6 @@ class Text extends BaseText {
     /**
      * @param string $lang
      * @return array<string>
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
      * @throws StopWordsLanguageNotExists
      */
     public static function getStopwords(string $lang='en'): array
@@ -45,9 +43,14 @@ class Text extends BaseText {
                 ->add('stopwords', StopWords::class);
         }
 
-        return static::getRegistry()
-            ->get('stopwords')
-            ->getStopWordsFromLanguage($lang);
+        try {
+            return static::getRegistry()
+                ->get('stopwords')
+                ->getStopWordsFromLanguage($lang);
+
+        } catch (ContainerExceptionInterface|NotFoundExceptionInterface $e) {
+            return [];
+        }
     }
 
     /**

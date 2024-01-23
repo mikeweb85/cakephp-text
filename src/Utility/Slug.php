@@ -3,9 +3,9 @@
 namespace MikeWeb\CakeText\Utility;
 
 use Cake\Datasource\EntityInterface;
+use Cake\Datasource\FactoryLocator;
+use Cake\ORM\Locator\LocatorInterface;
 use Cake\Utility\Inflector;
-use Psr\Container\ContainerExceptionInterface;
-use Psr\Container\NotFoundExceptionInterface;
 use voku\helper\StopWordsLanguageNotExists;
 
 class Slug
@@ -13,10 +13,20 @@ class Slug
     const SEPARATOR = '-';
 
     /**
-     * @throws StopWordsLanguageNotExists
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
+     * @var LocatorInterface|null
      */
+    static $_tableLocator;
+
+    protected static function getTableLocator(): LocatorInterface
+    {
+        if (static::$_tableLocator === null) {
+            /** @psalm-suppress InvalidPropertyAssignmentValue */
+            static::$_tableLocator = FactoryLocator::get('Table');
+        }
+
+        return static::$_tableLocator;
+    }
+
     public static function generate(EntityInterface|string $source, array $options=[]): string
     {
         $options += [
@@ -27,23 +37,35 @@ class Slug
             'replacement'   => static::SEPARATOR,
         ];
 
-        $string = ($source instanceof EntityInterface) ?
+        $hydrated = ($source instanceof EntityInterface);
+
+        $string = $hydrated ?
             $source->get($options['field']) :
             (string)$source;
 
-        if (
-            $source instanceof EntityInterface
-            && false !== filter_var($source->get('id'), FILTER_VALIDATE_INT)
-        ) {
-            $options['prefix'] = $source->get('id');
+        if ($options['prefix'] === true && $hydrated) {
+            $pk = static::getTableLocator()
+                ->get($source->getSource())
+                ->getPrimaryKey();
+
+            if ($source->has($pk)) {
+                $prefix = $source->get('id');
+                $options['prefix'] = !is_int($prefix) ?
+                    crc32($prefix):
+                    $prefix;
+            }
         }
 
         if ($options['strip']) {
-            $string = preg_replace(
-              sprintf('/\b(?:%s)\b/i', join('|', Text::getStopwords())),
-              ' ',
-                $string
-            );
+            try {
+                $string = preg_replace(
+                    sprintf('/\b(?:%s)\b/i', join('|', Text::getStopwords())),
+                    ' ',
+                    $string
+                );
+            } catch (StopWordsLanguageNotExists $e) {
+                // do nothing
+            }
         }
 
         $string = preg_replace_callback(
@@ -57,7 +79,8 @@ class Slug
         $slug = \Cake\Utility\Text::slug(
             Inflector::underscore(
                 trim($string, "_- \t\n\r\0\x0B")
-            )
+            ),
+            $options
         );
 
         if ($options['prefix']) {
